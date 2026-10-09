@@ -16,6 +16,7 @@ export const config = {
   port: Number(env('PORT') ?? 8787),
   tmdbReadToken: env('TMDB_READ_ACCESS_TOKEN'),
   tmdbApiKey: env('TMDB_API_KEY'),
+  youtubeApiKey: env('YOUTUBE_API_KEY'),
   iptvApiBase: (env('IPTV_API_BASE') ?? 'https://iptv-org.github.io/api').replace(/\/$/, ''),
   iaCollections: (env('IA_COLLECTIONS') ?? 'feature_films,prelinger')
     .split(',')

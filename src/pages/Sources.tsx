@@ -8,6 +8,7 @@ const TABLE = [
   { name: 'TVmaze', purpose: 'Serien ohne Schlüssel (Fallback)', url: 'https://www.tvmaze.com/api', key: 'Nein', limits: 'Ratenbegrenzung (HTTP 429 → warten)', terms: 'CC BY-SA, Quellenangabe', id: 'tvmaze' },
   { name: 'Wikidata + Wikimedia Commons', purpose: 'Gemeinfreie/frei lizenzierte Filme', url: 'https://query.wikidata.org/', key: 'Nein', limits: 'SPARQL max. 60 s je Abfrage; User-Agent Pflicht', terms: 'Daten CC0; Videos gemäss Lizenz der Datei', id: 'wikidata' },
   { name: 'Internet Archive', purpose: 'Archivfilme (nur erweiterter Modus)', url: 'https://archive.org/developers/', key: 'Nein', limits: 'Fair Use der API', terms: 'Rechte gemäss Uploader-Angabe – nicht geprüft', id: 'archive' },
+  { name: 'YouTube (offizielle Kanäle)', purpose: 'Ganze Filme von Rechteinhabern: Netzkino, Moviedome (DE/IT), Blender Studio', url: 'https://developers.google.com/youtube/v3', key: 'Ja (kostenlos)', limits: '10 000 Einheiten/Tag; Verbrauch ca. 30 je Aktualisierung (alle 12 h)', terms: 'YouTube-API-Nutzungsbedingungen; nur Videos mit erlaubter Einbettung; Wiedergabe im offiziellen Player', id: 'youtube' },
   { name: 'iptv-org', purpose: 'Senderverzeichnis, Logos, Stream-Kandidaten', url: 'https://github.com/iptv-org/api', key: 'Nein', limits: 'Statische JSON-Dateien (GitHub Pages)', terms: 'Daten: Unlicense. Streams gehören den Sendern', id: 'iptv' },
   { name: 'hls.js', purpose: 'HLS-Wiedergabe im Browser', url: 'https://github.com/video-dev/hls.js', key: '–', limits: '–', terms: 'Apache-2.0 (Software)', id: undefined },
 ];
@@ -25,7 +26,7 @@ export function SourcesPage() {
 
       <h2>Kennzeichnung</h2>
       <ul className="legend">
-        <li><span className="badge badge-direct">▶ Direkt ansehen</span> belegte Freigabe (freie Lizenz, gemeinfrei für deine Region oder offizieller frei zugänglicher Sender-Stream)</li>
+        <li><span className="badge badge-direct">▶ Direkt ansehen</span> belegte Freigabe (freie Lizenz, gemeinfrei für deine Region, ganzer Film auf einem offiziellen YouTube-Kanal des Rechteinhabers oder offizieller frei zugänglicher Sender-Stream)</li>
         <li><span className="badge badge-free_provider">Kostenlos beim Anbieter</span> gratis (evtl. mit Werbung) beim externen Anbieter – Wiedergabe dort</li>
         <li><span className="badge badge-subscription">Abo erforderlich</span> im Abo eines Streamingdienstes enthalten</li>
         <li><span className="badge badge-buy_rent">Kaufen/Mieten</span> nur als Kauf oder Leihe erhältlich</li>

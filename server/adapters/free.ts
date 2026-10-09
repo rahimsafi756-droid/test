@@ -12,6 +12,8 @@ export interface FreeTitle {
   license: LicenseInfo;
   /** Länder, für die die Freigabe belegt ist, oder 'worldwide' (z. B. CC-Lizenz). */
   regions: string[] | 'worldwide';
+  /** Ausdrücklich gesperrte Länder */
+  blockedRegions?: string[];
   regionNote?: string;
   homepage: string;
   runtimeMin?: number;
@@ -20,6 +22,7 @@ export interface FreeTitle {
   loadSources(): Promise<Omit<PlaybackSource, 'availableInRegion'>[]>;
 }
 
-export function regionAllowed(regions: string[] | 'worldwide', region: string): boolean {
+export function regionAllowed(regions: string[] | 'worldwide', region: string, blocked?: string[]): boolean {
+  if (blocked?.includes(region)) return false;
   return regions === 'worldwide' || regions.includes(region);
 }

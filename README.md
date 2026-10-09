@@ -8,7 +8,7 @@ Jeder Titel und jeder Sender ist eindeutig gekennzeichnet:
 
 | Kennzeichnung | Bedeutung |
 |---|---|
-| **▶ Direkt ansehen** | Belegte Freigabe: freie Lizenz, gemeinfrei für deine Region oder offizieller, frei zugänglicher Sender-Stream. Läuft direkt auf der Seite. |
+| **▶ Direkt ansehen** | Belegte Freigabe: freie Lizenz, gemeinfrei für deine Region, ganzer Film auf einem offiziellen YouTube-Kanal des Rechteinhabers oder offizieller, frei zugänglicher Sender-Stream. Läuft direkt auf der Seite. |
 | **Kostenlos beim Anbieter** | Gratis (evtl. mit Werbung) bei einem externen Dienst. Wird dort abgespielt. |
 | **Abo erforderlich** | Im Abo eines Streamingdienstes enthalten. |
 | **Kaufen/Mieten** | Nur als Kauf oder Leihe erhältlich. |
@@ -50,7 +50,7 @@ Ohne weitere Einstellungen funktionieren bereits:
 | Befehl | Zweck |
 |---|---|
 | `npm run typecheck` | TypeScript-Prüfung |
-| `npm test` | Automatische Tests (30 Tests, ohne Internet) |
+| `npm test` | Automatische Tests (35 Tests, ohne Internet) |
 | `npm run snapshot:iptv` | Offline-Abzug der iptv-org-Daten erneuern |
 
 ---
@@ -81,6 +81,43 @@ Warum das sicher ist:
 
 ---
 
+## 2b. YouTube-Schlüssel (optional, für ganze Filme aus offiziellen Kanälen)
+
+Mit diesem Schlüssel erscheinen ganze Filme aus kuratierten offiziellen YouTube-Kanälen als „Direkt ansehen“. Die Kanäle bieten die Filme mit Lizenz der Rechteinhaber an:
+
+| Kanal | Betreiber | Sprache | Freigabe |
+|---|---|---|---|
+| Netzkino | PLAION PICTURES GmbH | Deutsch | Betreiber gibt an, alle Titel lizenziert zu haben (werbefinanziert) |
+| Moviedome | PLAION PICTURES GmbH | Deutsch | Verifizierter Markenkanal (werbefinanziert) |
+| Moviedome IT | PLAION PICTURES GmbH | Italienisch | Verifizierter Markenkanal (werbefinanziert) |
+| Blender Studio | Blender Studio | Englisch / ohne Dialog | Open Movies unter Creative Commons |
+
+Die Liste steht in `server/data/youtube-channels.ts`, mit Quellen für jede Angabe. Die Kanal-IDs habe ich per Websuche recherchiert, weil YouTube in der Entwicklungsumgebung nicht erreichbar war. Bitte jeden Kanal einmal auf YouTube öffnen und prüfen.
+
+Für jedes Video wird automatisch geprüft:
+- **Öffentlich und einbettbar:** Das Video ist öffentlich und der Kanal erlaubt die Einbettung (YouTube-Status „embeddable“).
+- **Ganzer Film:** Livestreams, Trailer, Clips und Tutorials sind ausgeschlossen. Es gilt eine Mindestlaufzeit, zum Beispiel 60 Minuten bei Netzkino.
+- **Regionale Sperren:** Ist ein Video in der Schweiz gesperrt, erscheint es dort nicht als „Direkt ansehen“.
+
+Abgespielt wird nur im offiziellen YouTube-Player (`youtube-nocookie.com`), inklusive der YouTube-Werbung. Den Fortschritt verwaltet YouTube; Rahim Cinema speichert dafür nichts.
+
+**So bekommst du den Schlüssel (kostenlos):**
+
+1. [console.cloud.google.com](https://console.cloud.google.com) öffnen, mit einem Google-Konto anmelden und oben **„Projekt erstellen“** wählen, zum Beispiel „Rahim Cinema“.
+2. Links **„APIs und Dienste“ → „Bibliothek“** öffnen, nach **„YouTube Data API v3“** suchen und **„Aktivieren“** klicken.
+3. **„APIs und Dienste“ → „Anmeldedaten“ → „Anmeldedaten erstellen“ → „API-Schlüssel“** wählen.
+4. Empfohlen: beim Schlüssel auf **„Schlüssel einschränken“** klicken und unter „API-Einschränkungen“ nur **YouTube Data API v3** erlauben.
+5. In `.env` eintragen: `YOUTUBE_API_KEY=AIza...` und den Server neu starten.
+
+Kosten und Kontingent:
+- Das Tageskontingent beträgt 10 000 Einheiten. Eine Aktualisierung aller Kanäle verbraucht etwa 30 Einheiten und findet alle 12 Stunden statt.
+- Für die YouTube Data API ist in der Regel keine Zahlungsmethode nötig.
+- Der Schlüssel bleibt wie der TMDB-Schlüssel nur auf dem Server; das ist automatisch getestet.
+
+Einen weiteren Kanal fügst du in `server/data/youtube-channels.ts` hinzu. Bitte nur Kanäle von Rechteinhabern oder offiziellen Lizenznehmern aufnehmen, keine Uploads Dritter.
+
+---
+
 ## 3. Aufbau
 
 ```
@@ -92,9 +129,11 @@ server/
     wikidata.ts      Wikidata + Wikimedia Commons (freie Filme)
     internetArchive.ts  Internet Archive (Lizenz nur vom Uploader erklärt)
     iptvOrg.ts       iptv-org (Senderverzeichnis), mit Offline-Abzug
+    youtube.ts       YouTube Data API (ganze Filme aus offiziellen Kanälen)
   data/
     official-streams.ts  Kuratierte Regeln: welche Stream-Hosts offiziell sind
     iptv-snapshot.json   Offline-Abzug für den Fall, dass iptv-org nicht erreichbar ist
+    youtube-channels.ts  Kuratierte offizielle YouTube-Kanäle mit Lizenznachweis
   services/        Zusammenführung, Regionen- und Lizenzlogik
   lib/             HTTP mit Zeitlimit/Wiederholungen, Cache, Status
   app.ts           API-Routen, Eingabeprüfung (zod), Sicherheits-Header, Ratenbegrenzung
@@ -121,6 +160,7 @@ Was die einzelnen Teile leisten:
 | Wikidata + Wikimedia Commons | Gemeinfreie/frei lizenzierte Filme mit Videodatei | query.wikidata.org, commons.wikimedia.org | Nein | SPARQL-Abfragen max. 60 s; aussagekräftiger User-Agent Pflicht | Daten CC0; Videos gemäss Dateilizenz (z. B. CC BY → Namensnennung) | Integriert |
 | Internet Archive | Archivfilme mit Lizenzangabe | archive.org/developers | Nein | faire Nutzung | Lizenz nur vom Uploader erklärt → nur im erweiterten Modus abspielbar | Integriert |
 | iptv-org | Senderverzeichnis, Logos, Stream-Kandidaten | github.com/iptv-org/api | Nein | statische JSON-Dateien | Daten: Unlicense; die Streams gehören den Sendern | Integriert, Offline-Abzug enthalten |
+| YouTube (offizielle Kanäle) | Ganze Filme von Rechteinhabern (Netzkino, Moviedome DE/IT, Blender Studio) | developers.google.com/youtube/v3 | Ja (kostenlos) | 10 000 Einheiten/Tag; Verbrauch ca. 30 je Aktualisierung | YouTube-API-Bedingungen; nur Videos mit erlaubter Einbettung; Wiedergabe im offiziellen Player | Integriert, mit nachgebildeten Antworten getestet |
 | hls.js | HLS-Wiedergabe | github.com/video-dev/hls.js | – | – | Softwarelizenz Apache-2.0 (sagt nichts über Videorechte) | Integriert (v1.7) |
 
 **Pflicht-Quellenangaben** stehen im Fussbereich der Seite und unter `/quellen`.
@@ -134,6 +174,7 @@ Was die einzelnen Teile leisten:
 - **Filme (Wikidata/Commons):** Wikidata muss eine freie Lizenz (P275, z. B. Creative Commons) oder den Status „gemeinfrei“ (P6216) eintragen.
   - Bei „gemeinfrei“ zählt der Rechtsraum (P1001). Ein Film, der nur in den USA gemeinfrei ist, wird in der Schweiz **nicht** als „Direkt ansehen“ markiert.
   - Die Datei liegt auf Wikimedia Commons, das nur frei nutzbare Dateien zulässt.
+- **Filme (YouTube):** Nur aus kuratierten Kanälen von Rechteinhabern oder Lizenznehmern. Zusätzlich wird pro Video geprüft, ob es öffentlich und einbettbar ist, ob es ein ganzer Film ist und ob es regionale Sperren hat. Uploads Dritter werden nie übernommen.
 - **Filme (Internet Archive):** Hier hat nur der Uploader die Lizenz angegeben. Das ist kein Nachweis, deshalb sind diese Filme im Standardmodus („streng“) nicht abspielbar. Unter Einstellungen → „Erweitert“ lassen sie sich mit Warnhinweis freischalten.
 - **Live-TV:** iptv-org listet auch Weiterverbreitungen durch Dritte, zum Beispiel „SRF zwei“ über einen fremden Host. Abspielbar sind deshalb **nur** HTTPS-Streams, deren Host zur offiziellen Infrastruktur des Senders gehört (Liste in `server/data/official-streams.ts`).
   - Eine ausdrückliche Erlaubnis zur Einbettung durch Dritte ist bei keinem Sender dokumentiert. Das steht bei jedem Stream, zusammen mit dem Link zur offiziellen Seite.
@@ -161,8 +202,9 @@ Was die einzelnen Teile leisten:
 | Mobile Ansicht (iPhone-Grösse) | ✅ | ✅ | 4 Seiten ohne horizontales Scrollen, Tab-Leiste, Video spielt |
 | Fehlender Schlüssel / ausgefallene APIs | ✅ | ✅ | verständliche Hinweise statt Absturz; Live-TV fällt auf den Offline-Abzug zurück |
 | Secrets vor dem Browser geschützt | ✅ | ✅ | Schlüssel weder in API-Antworten noch im ausgelieferten JavaScript |
-| Build und Typprüfung | ✅ | ✅ | `npm run build`, `npm run typecheck`, `npm test` (30/30) |
-| Echte Antworten von TMDB, TVmaze, Wikidata, Commons, Internet Archive | ✅ | ❌ **noch nicht überprüfbar** | gesperrt; Format laut Doku nachgebildet. Bitte nach dem ersten Start prüfen (Seite `/quellen` zeigt den Status) |
+| Build und Typprüfung | ✅ | ✅ | `npm run build`, `npm run typecheck`, `npm test` (35/35) |
+| YouTube: nur ganze, einbettbare Filme; regionale Sperren je Region; als „Ganzer Film“ (nicht Trailer) gekennzeichnet | ✅ | ✅ | API-Tests + Browsertest (Einbettungsplayer durch Platzhalter ersetzt) |
+| Echte Antworten von TMDB, TVmaze, Wikidata, Commons, Internet Archive, YouTube | ✅ | ❌ **noch nicht überprüfbar** | gesperrt; Format laut Doku nachgebildet. Bitte nach dem ersten Start prüfen (Seite `/quellen` zeigt den Status) |
 | Echte Live-Streams (DW, tagesschau24, RTS, 3sat, Euronews …) | ✅ | ❌ **noch nicht überprüfbar** | Stream-Server gesperrt. Ob sie laufen, hängt von Sender, Sendezeit, Geosperre und CORS ab |
 | Safari/iOS (native HLS-Wiedergabe) | ✅ | ❌ | nur Chromium verfügbar |
 | Docker-Image | ✅ | ❌ | Docker nicht verfügbar |
@@ -172,6 +214,7 @@ Was die einzelnen Teile leisten:
 - **Wikidata-Abfrage ungetestet:** Die SPARQL-Abfrage (`server/adapters/wikidata.ts`) wurde nicht gegen den echten Dienst ausgeführt. Wird sie zu langsam (über 60 s), `LIMIT` verkleinern.
 - **Videoformate:** Commons-Videos sind meist WebM (VP9). Ältere Safari-Versionen spielen das nicht ab; in dem Fall erscheint ein Hinweis mit Link zur Originalseite.
 - **Externe Anbieter:** Anbieterdaten von TMDB/JustWatch können veraltet sein. Fortschritt bei externen Anbietern wird bewusst nicht erfasst.
+- **YouTube:** Pro Kanal werden die 200 neuesten Uploads geprüft; ältere Filme erscheinen nicht. YouTube kann Videos regional sperren, ohne dass die API das meldet; dann zeigt der YouTube-Player selbst einen Hinweis. Kanal-IDs und Handles bitte einmal auf YouTube kontrollieren.
 - **Ohne TMDB-Schlüssel:** Es gibt keinen grossen Filmkatalog und keine Anbieterinfos zu Serien, weil TVmaze keine Schweizer Anbieterdaten hat.
 - **Live-TV-Liste ist kuratiert:** Neue Sender müssen in `server/data/official-streams.ts` eingetragen werden, mit einer Regel für die offizielle CDN des Senders.
 
@@ -185,7 +228,7 @@ Die App ist ein einzelner Node.js-Server (API + Webseite). Geeignet sind alle An
 
 1. Projekt auf GitHub hochladen (die Datei `.env` wird nicht mit hochgeladen).
 2. Auf [render.com](https://render.com) anmelden, **New → Blueprint** wählen und das Repository auswählen. Die Datei `render.yaml` wird erkannt.
-3. Unter **Environment** eintragen: `TMDB_READ_ACCESS_TOKEN` (optional) und `CONTACT` (deine E-Mail für den User-Agent).
+3. Unter **Environment** eintragen: `TMDB_READ_ACCESS_TOKEN` und `YOUTUBE_API_KEY` (beide optional) sowie `CONTACT` (deine E-Mail für den User-Agent).
 4. Nach dem Build ist die Seite unter `https://<name>.onrender.com` erreichbar (HTTPS automatisch).
 
 - **Kostenloser Plan:** Der Dienst schläft nach etwa 15 Minuten ohne Besuch ein, der erste Aufruf dauert dann etwa 30–60 Sekunden. Es gibt ein monatliches Stundenkontingent. Aktuelle Werte: [render.com/pricing](https://render.com/pricing).

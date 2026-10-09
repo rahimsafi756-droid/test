@@ -19,10 +19,13 @@ import { archiveEnabled, archiveFreeTitles } from '../adapters/internetArchive.t
 import { mapTmdbDetail, tmdbAvailabilityFor, tmdbConfigured, tmdbDetail, tmdbList, tmdbSeason } from '../adapters/tmdb.ts';
 import { tvmazeDetail, tvmazeEnabled, tvmazeList, tvmazeSeason } from '../adapters/tvmaze.ts';
 import { wikidataEnabled, wikidataFreeTitles } from '../adapters/wikidata.ts';
+import { youtubeConfigured, youtubeFreeTitles } from '../adapters/youtube.ts';
 import { UpstreamError } from '../lib/http.ts';
 import { featuredChannels } from './live.ts';
 
 export class NotFoundError extends Error {}
+
+const FREE_NAMES: Record<string, string> = { wikidata: 'Wikidata/Wikimedia Commons', archive: 'Internet Archive', youtube: 'YouTube (offizieller Kanal)' };
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -36,6 +39,19 @@ async function loadFree(notices: Notice[]): Promise<FreeTitle[]> {
         notices.push({ level: 'warning', code: 'wikidata_down', message: `Wikidata/Commons nicht erreichbar (${errText(e)}). Freie Filme daraus fehlen vorübergehend.` });
         return [];
       }),
+    );
+  if (youtubeConfigured())
+    jobs.push(
+      youtubeFreeTitles().then(
+        (r) => {
+          for (const e of r.errors) notices.push({ level: 'warning', code: 'youtube_channel', message: `YouTube-Kanal nicht verfügbar – ${e}` });
+          return r.titles;
+        },
+        (e) => {
+          notices.push({ level: 'warning', code: 'youtube_down', message: `YouTube-Filme gerade nicht verfügbar (${errText(e)}).` });
+          return [];
+        },
+      ),
     );
   if (archiveEnabled())
     jobs.push(
@@ -63,7 +79,7 @@ export function trustAllowed(t: FreeTitle, trust: TrustMode) {
 }
 
 function freeAvailability(t: FreeTitle, region: string, trust: TrustMode): Availability {
-  return trustAllowed(t, trust) && regionAllowed(t.regions, region) ? 'direct' : 'none';
+  return trustAllowed(t, trust) && regionAllowed(t.regions, region, t.blockedRegions) ? 'direct' : 'none';
 }
 
 function freeSummary(t: FreeTitle, region: string, trust: TrustMode): TitleSummary {
@@ -202,7 +218,7 @@ export async function listCatalog(p: CatalogParams): Promise<Paged<TitleSummary>
 // ---------- Detail ----------
 
 export function parseId(id: string): { provider: string; kind: string; ref: string } {
-  const m = id.match(/^(tmdb|tvmaze|wikidata|archive):(movie|tv|series):([A-Za-z0-9._-]{1,120})$/);
+  const m = id.match(/^(tmdb|tvmaze|wikidata|archive|youtube):(movie|tv|series):([A-Za-z0-9._-]{1,120})$/);
   if (!m) throw new NotFoundError('Ungültige ID');
   return { provider: m[1], kind: m[2], ref: m[3] };
 }
@@ -213,10 +229,10 @@ async function freeSourcesFor(f: FreeTitle, region: string, trust: TrustMode, no
     const allowedTrust = trustAllowed(f, trust);
     if (!allowedTrust)
       notices.push({ level: 'info', code: 'trust_strict', message: 'Die Lizenz dieser Quelle wurde nur vom Uploader erklärt. Im strengen Prüfmodus wird sie nicht abgespielt – in den Einstellungen kannst du den erweiterten Modus wählen.' });
-    else if (!regionAllowed(f.regions, region))
+    else if (!regionAllowed(f.regions, region, f.blockedRegions))
       notices.push({ level: 'info', code: 'region', message: f.regionNote ?? `Die Freigabe ist für die Region ${region} nicht belegt.` });
     if (!list.length) notices.push({ level: 'warning', code: 'no_file', message: 'Bei der Quelle wurde keine browsertaugliche Videodatei gefunden.' });
-    return list.map((s) => ({ ...s, availableInRegion: allowedTrust && regionAllowed(s.regions, region) }));
+    return list.map((s) => ({ ...s, availableInRegion: allowedTrust && regionAllowed(s.regions, region, s.blockedRegions) }));
   } catch (e) {
     notices.push({ level: 'error', code: 'source_error', message: `Wiedergabequelle konnte nicht geladen werden (${errText(e)}).` });
     return [];
@@ -260,7 +276,7 @@ export async function getTitle(id: string, region: string, language: string, tru
       const f = free.find((x) => x.tmdbId === Number(ref));
       if (f) {
         detail.sources = await freeSourcesFor(f, region, trust, detail.notices);
-        detail.provenance.push({ provider: f.summary.provider, name: f.summary.provider === 'wikidata' ? 'Wikidata/Wikimedia Commons' : 'Internet Archive', url: f.homepage, fetchedAt: now });
+        detail.provenance.push({ provider: f.summary.provider, name: FREE_NAMES[f.summary.provider] ?? f.summary.provider, url: f.homepage, fetchedAt: now });
         if (detail.sources.some((s) => s.availableInRegion)) detail.availability = 'direct';
       }
     }
@@ -291,12 +307,12 @@ export async function getTitle(id: string, region: string, language: string, tru
     };
   }
 
-  // wikidata / archive
+  // wikidata / archive / youtube
   const notices: Notice[] = [];
   const free = await loadFree(notices);
   const f = free.find((x) => x.summary.id === id);
   if (!f) {
-    if (notices.length) throw new UpstreamError(provider === 'archive' ? 'archive' : 'wikidata', notices.map((n) => n.message).join(' '));
+    if (notices.length) throw new UpstreamError(provider === 'archive' ? 'archive' : provider === 'youtube' ? 'youtube' : 'wikidata', notices.map((n) => n.message).join(' '));
     throw new NotFoundError('Titel nicht gefunden');
   }
   const detail: TitleDetail = {
@@ -305,7 +321,7 @@ export async function getTitle(id: string, region: string, language: string, tru
     directors: f.directors ?? [],
     homepage: f.homepage,
     notices,
-    provenance: [{ provider: f.summary.provider, name: f.summary.provider === 'wikidata' ? 'Wikidata/Wikimedia Commons' : 'Internet Archive', url: f.homepage, fetchedAt: now }],
+    provenance: [{ provider: f.summary.provider, name: FREE_NAMES[f.summary.provider] ?? f.summary.provider, url: f.homepage, fetchedAt: now }],
   };
   detail.sources = await freeSourcesFor(f, region, trust, detail.notices);
   detail.availability = detail.sources.some((s) => s.availableInRegion) ? 'direct' : 'none';
@@ -364,7 +380,7 @@ export async function home(region: string, language: string, trust: TrustMode): 
   };
 
   const freeItems = take(free);
-  rows.push({ id: 'direct', title: 'Direkt ansehen', subtitle: 'Gemeinfreie und frei lizenzierte Filme – hier abspielbar', items: freeItems.slice(0, 20), link: '/filme?avail=direct' });
+  rows.push({ id: 'direct', title: 'Direkt ansehen', subtitle: 'Gemeinfreie, frei lizenzierte und von Rechteinhabern freigegebene Filme – hier abspielbar', items: freeItems.slice(0, 20), link: '/filme?avail=direct' });
   const fp = take(freeProv).filter((t) => t.availability === 'free_provider');
   if (fp.length) rows.push({ id: 'free-provider', title: `Kostenlos bei Anbietern (${region})`, subtitle: 'Wird beim jeweiligen Anbieter abgespielt', items: fp.slice(0, 20), link: '/filme?avail=free' });
   const pm = take(popMovies);

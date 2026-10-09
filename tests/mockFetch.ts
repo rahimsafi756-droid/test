@@ -3,6 +3,33 @@
  * für Tests in einer Umgebung ohne Internetzugang. Wird NUR in Tests geladen.
  */
 export const TEST_KEY = 'test-secret-token-should-never-leak';
+export const YT_TEST_KEY = 'yt-secret-key-should-never-leak';
+
+const ytVideo = (id: string, title: string, duration: string, extra: { embeddable?: boolean; live?: string; allowed?: string[]; blocked?: string[]; channelId?: string; lang?: string } = {}) => ({
+  id,
+  snippet: {
+    title,
+    description: `Beschreibung von ${title} https://example.org/link`,
+    channelId: extra.channelId ?? 'UCGkHFrwE8KEuOHPVsIOskAg',
+    tags: ['Komödie'],
+    defaultAudioLanguage: extra.lang,
+    liveBroadcastContent: extra.live ?? 'none',
+    thumbnails: { high: { url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg` } },
+  },
+  contentDetails: { duration, ...(extra.allowed || extra.blocked ? { regionRestriction: { allowed: extra.allowed, blocked: extra.blocked } } : {}) },
+  status: { embeddable: extra.embeddable ?? true, privacyStatus: 'public' },
+});
+
+const YT_VIDEOS = [
+  ytVideo('nk1AAAAAAAA', 'Der Bergdoktor (1992) | Ganzer Film Deutsch', 'PT1H35M12S', { lang: 'de' }),
+  ytVideo('nk2AAAAAAAA', 'Irgendein Film - Trailer', 'PT2M10S'),
+  ytVideo('nk3AAAAAAAA', 'Nicht einbettbar (Ganzer Film)', 'PT1H40M', { embeddable: false }),
+  ytVideo('nk4AAAAAAAA', 'In CH gesperrt | Ganzer Film', 'PT1H30M', { blocked: ['CH', 'LI'] }),
+  ytVideo('nk5AAAAAAAA', 'Live-Premiere Ganzer Film', 'PT2H', { live: 'live' }),
+  ytVideo('md1AAAAAAAA', 'Nur DE und AT [HD] (Ganzer Film)', 'PT1H40M', { allowed: ['DE', 'AT'], channelId: 'UCmoviedome' }),
+  ytVideo('bl1AAAAAAAA', 'Sprite Fright - Blender Open Movie', 'PT10M29S', { channelId: 'UCz75RVbH8q2jdBJ4SnwuZZQ', lang: 'en' }),
+  ytVideo('bl2AAAAAAAA', 'Blender Tutorial: Modeling basics', 'PT30M', { channelId: 'UCz75RVbH8q2jdBJ4SnwuZZQ' }),
+];
 
 const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
 
@@ -79,6 +106,30 @@ export function installMockFetch(opts: { failHosts?: string[] } = {}) {
         });
       if (p === '/3/tv/1399/season/2') return json({ season_number: 2, name: 'Staffel 2', episodes: [{ id: 3, episode_number: 1, season_number: 2, name: 'Neue Staffel' }] });
       return json({ status_message: 'not found' }, 404);
+    }
+
+    // ---------- YouTube Data API ----------
+    if (url.hostname === 'www.googleapis.com' && p.startsWith('/youtube/v3/')) {
+      if (url.searchParams.get('key') !== YT_TEST_KEY) return json({ error: { code: 400, message: 'API key not valid' } }, 400);
+      const sp = url.searchParams;
+      if (p.endsWith('/channels')) {
+        const map: Record<string, string> = { UCGkHFrwE8KEuOHPVsIOskAg: 'UUnetzkino', '@Moviedome': 'UUmoviedome', UCz75RVbH8q2jdBJ4SnwuZZQ: 'UUblender' };
+        const key = sp.get('id') ?? sp.get('forHandle') ?? '';
+        return json(map[key] ? { items: [{ id: key, snippet: { title: key }, contentDetails: { relatedPlaylists: { uploads: map[key] } } }] } : { items: [] });
+      }
+      if (p.endsWith('/playlistItems')) {
+        const pl = sp.get('playlistId');
+        const ids = YT_VIDEOS.filter((v) => (pl === 'UUnetzkino' ? v.id.startsWith('nk') : pl === 'UUmoviedome' ? v.id.startsWith('md') : v.id.startsWith('bl'))).map((v) => v.id);
+        // Seitenweise Auslieferung testen: Netzkino in zwei Seiten
+        if (pl === 'UUnetzkino' && !sp.get('pageToken')) return json({ nextPageToken: 'p2', items: ids.slice(0, 2).map((videoId) => ({ contentDetails: { videoId } })) });
+        if (pl === 'UUnetzkino') return json({ items: ids.slice(2).map((videoId) => ({ contentDetails: { videoId } })) });
+        return json({ items: ids.map((videoId) => ({ contentDetails: { videoId } })) });
+      }
+      if (p.endsWith('/videos')) {
+        const ids = (sp.get('id') ?? '').split(',');
+        return json({ items: YT_VIDEOS.filter((v) => ids.includes(v.id)) });
+      }
+      return json({}, 404);
     }
 
     // ---------- TVmaze ----------

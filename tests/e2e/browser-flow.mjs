@@ -55,6 +55,9 @@ async function setupRoutes(ctx) {
     if (!existsSync(local)) return r.fulfill({ status: 404, body: '' });
     return r.fulfill({ status: 200, contentType: mime(file), body: readFileSync(local), headers: { 'access-control-allow-origin': '*' } });
   });
+  // YouTube-Einbettungsplayer durch Platzhalter ersetzen (kein Internet)
+  await ctx.route('https://www.youtube-nocookie.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: '<body style="background:#000;color:#fff">YouTube-Player (Testplatzhalter)</body>' }));
+  await ctx.route(/i\.ytimg\.com/, (r) => r.fulfill({ status: 204, body: '' }));
   // Simulierte Geosperre für tagesschau24
   await ctx.route(/tagesschau\.akamaized\.net/, (r) => r.fulfill({ status: 403, body: 'forbidden', headers: { 'access-control-allow-origin': '*' } }));
 }
@@ -173,6 +176,26 @@ try {
     await page.locator('video').waitFor();
     await page.goto(BASE + '/einstellungen');
     await page.getByRole('combobox', { name: 'Region' }).selectOption('CH');
+  });
+
+  await check('YouTube: ganzer Film eines offiziellen Kanals → Einbettungsplayer, als „Ganzer Film“ gekennzeichnet', async () => {
+    await page.goto(BASE + '/filme?avail=direct&q=bergdoktor');
+    await page.getByRole('link', { name: /Der Bergdoktor/ }).click();
+    await page.getByRole('heading', { level: 1, name: 'Der Bergdoktor' }).waitFor();
+    await page.getByRole('button', { name: '▶ Direkt ansehen' }).click();
+    const frame = page.locator('iframe[src^="https://www.youtube-nocookie.com/embed/nk1AAAAAAAA"]');
+    await frame.waitFor();
+    await page.locator('.tag-film').waitFor();
+    assert((await page.locator('.player .tag-trailer').count()) === 0, 'Film fälschlich als Trailer markiert');
+    assert((await frame.contentFrame().getByText('Testplatzhalter').count()) === 1, 'iframe nicht geladen');
+    await page.screenshot({ path: join(SHOTS, '08-youtube-film.png') });
+  });
+
+  await check('YouTube: in CH gesperrtes Video nicht abspielbar', async () => {
+    await page.goto(BASE + '/titel/' + encodeURIComponent('youtube:movie:nk4AAAAAAAA'));
+    await page.getByRole('heading', { level: 1, name: 'In CH gesperrt' }).waitFor();
+    assert((await page.getByRole('button', { name: '▶ Direkt ansehen' }).count()) === 0, 'Direkt ansehen trotz Sperre');
+    assert(await page.getByRole('button', { name: '▶ Abspielen' }).isDisabled(), 'Abspielen nicht deaktiviert');
   });
 
   await check('Quellen-Seite zeigt Status', async () => {

@@ -260,17 +260,27 @@ export function Player({ source, alternatives, meta, live, onSwitch }: Props) {
       <div className="player">
         <div className="player-frame">
           <iframe
-            src={`${source.url}?rel=0`}
+            src={`${source.url}?rel=0&autoplay=1`}
             title={source.label}
-            allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
           />
         </div>
         <div className="player-bar">
-          <span className="tag tag-trailer">Trailer</span>
+          {source.isTrailer ? <span className="tag tag-trailer">Trailer</span> : <span className="tag tag-film">Ganzer Film</span>}
           <span className="player-label">{source.label}</span>
+          {source.homepage && (
+            <a className="btn btn-ghost" href={source.homepage} target="_blank" rel="noopener noreferrer">
+              Auf YouTube ↗
+            </a>
+          )}
         </div>
+        <p className="player-meta">
+          Wiedergabe: offizieller YouTube-Player{!source.isTrailer && ' · Fortschritt wird von YouTube verwaltet, nicht von Rahim Cinema'}
+          {source.license && !source.isTrailer && <> · {source.license.name}</>}
+          {source.regionNote && !source.isTrailer && <> · {source.regionNote}</>}
+        </p>
       </div>
     );
   }

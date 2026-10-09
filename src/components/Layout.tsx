@@ -64,7 +64,7 @@ export function Layout() {
         </div>
         <div className="footer-attr">
           <p className="muted small">
-            Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert. Anbieterdaten: JustWatch. Weitere Quellen: TVmaze (CC BY-SA), Wikidata/Wikimedia Commons, Internet Archive, iptv-org.
+            Dieses Produkt nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert. Anbieterdaten: JustWatch. Weitere Quellen: YouTube (offizielle Kanäle), TVmaze (CC BY-SA), Wikidata/Wikimedia Commons, Internet Archive, iptv-org.
           </p>
           <Link to="/quellen">Quellen &amp; Lizenzen</Link> · <Link to="/einstellungen">Einstellungen</Link>
         </div>

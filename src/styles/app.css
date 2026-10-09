@@ -132,6 +132,7 @@ button, input, select { font: inherit; color: inherit; }
 .badge-none, .badge-unknown { color: #b6b8c0; border-color: #4b4f5a; }
 .tag { font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 6px; }
 .tag-trailer { background: #3b2a06; color: var(--accent); border: 1px solid var(--accent); }
+.tag-film { background: rgb(6 40 28 / 0.85); color: var(--direct); border: 1px solid var(--direct); }
 .tag-live { background: #4a0d0d; color: #ff6b6b; border: 1px solid #ff6b6b; animation: pulse 2s infinite; }
 @keyframes pulse { 50% { opacity: 0.6; } }
 

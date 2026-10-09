@@ -23,7 +23,7 @@ export const AVAILABILITY_RANK: Record<Availability, number> = {
   none: 4,
 };
 
-export type ProviderId = 'tmdb' | 'tvmaze' | 'wikidata' | 'archive' | 'iptv';
+export type ProviderId = 'tmdb' | 'tvmaze' | 'wikidata' | 'archive' | 'iptv' | 'youtube';
 
 export type MediaKind = 'movie' | 'series';
 
@@ -59,6 +59,8 @@ export interface PlaybackSource {
   providerName: string;
   /** ISO-3166-Ländercodes, in denen die Quelle nutzbar ist, oder 'worldwide'. */
   regions: string[] | 'worldwide';
+  /** Länder, in denen die Quelle ausdrücklich gesperrt ist (z. B. YouTube regionRestriction.blocked) */
+  blockedRegions?: string[];
   /** True, wenn die Quelle in der angefragten Region laut Daten nutzbar ist. */
   availableInRegion: boolean;
   regionNote?: string;

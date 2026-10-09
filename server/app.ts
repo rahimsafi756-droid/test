@@ -7,6 +7,7 @@ import { iptvEnabled, iptvInfo } from './adapters/iptvOrg.ts';
 import { tmdbConfigured, tmdbInfo } from './adapters/tmdb.ts';
 import { tvmazeEnabled, tvmazeInfo } from './adapters/tvmaze.ts';
 import { wikidataEnabled, wikidataInfo } from './adapters/wikidata.ts';
+import { youtubeConfigured, youtubeInfo } from './adapters/youtube.ts';
 import { UpstreamError } from './lib/http.ts';
 import { getStatus } from './lib/status.ts';
 import { NotFoundError, getSeason, getTitle, home, listCatalog } from './services/catalog.ts';
@@ -117,6 +118,7 @@ app.get('/api/sources', (c) => {
     { ...tvmazeInfo, configured: true, enabled: tvmazeEnabled() },
     { ...wikidataInfo, configured: true, enabled: wikidataEnabled() },
     { ...archiveInfo, configured: true, enabled: archiveEnabled() },
+    { ...youtubeInfo, configured: youtubeConfigured(), enabled: config.isEnabled('youtube') },
     { ...iptvInfo, configured: true, enabled: iptvEnabled() },
   ].map((s) => ({ ...s, ...getStatus(s.id) }));
   return c.json(list);
