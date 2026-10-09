@@ -1,0 +1,16 @@
+# Blueprint für Render (https://render.com) – Secrets im Dashboard setzen, nicht hier!
+services:
+  - type: web
+    name: rahim-cinema
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TMDB_READ_ACCESS_TOKEN
+        sync: false
+      - key: CONTACT
+        sync: false
