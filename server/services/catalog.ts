@@ -272,7 +272,8 @@ export async function getTitle(id: string, region: string, language: string, tru
       provenance: [{ provider: 'tmdb', name: 'TMDB (Anbieterdaten: JustWatch)', url: `https://www.themoviedb.org/${kind}/${ref}`, fetchedAt: now }],
     };
     if (mk === 'movie') {
-      const free = await loadFree(detail.notices);
+      // Hinweise zu einzelnen Quellen hier nicht anzeigen – sie betreffen diesen Titel nicht
+      const free = await loadFree([]);
       const f = free.find((x) => x.tmdbId === Number(ref));
       if (f) {
         detail.sources = await freeSourcesFor(f, region, trust, detail.notices);

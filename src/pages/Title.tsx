@@ -180,7 +180,7 @@ export function TitlePage() {
               <ul className="offers">
                 {d.offers.map((o) => (
                   <li key={`${o.providerName}-${o.availability}-${o.note ?? ''}`} className="offer">
-                    {o.logoUrl && <img src={o.logoUrl} alt="" width="40" height="40" loading="lazy" />}
+                    <div className="offer-logo"><Img src={o.logoUrl} fallback={o.providerName.slice(0, 2)} /></div>
                     <div>
                       <strong>{o.providerName}</strong>
                       <div>

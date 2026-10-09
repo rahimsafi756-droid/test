@@ -221,7 +221,9 @@ a.card:hover .card-poster, .card-poster:hover { transform: translateY(-4px) scal
 .source-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
 .offers { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; }
 .offer { display: flex; gap: 0.7rem; align-items: center; padding: 0.6rem; background: var(--surface); border-radius: 10px; border: 1px solid var(--line); }
-.offer img { border-radius: 8px; }
+.offer-logo { flex: 0 0 40px; height: 40px; border-radius: 8px; overflow: hidden; }
+.offer-logo img { width: 100%; height: 100%; object-fit: cover; }
+.offer-logo .poster-fallback { font-size: 0.75rem; padding: 0; }
 .cast { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 1rem; }
 .cast li { display: grid; gap: 0.2rem; font-size: 0.85rem; }
 .cast-photo { aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; font-weight: 800; color: var(--muted); }
