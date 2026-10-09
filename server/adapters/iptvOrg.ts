@@ -7,8 +7,6 @@
  * Wichtig: Die Daten sind ein Verzeichnis, keine Rechte-Datenbank. Abspielbar
  * werden nur Streams, die eine Regel in data/official-streams.ts erfüllen.
  */
-import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { config } from '../config.ts';
 import { cache } from '../lib/cache.ts';
@@ -51,11 +49,9 @@ export type IptvData = { [K in keyof typeof iptvSchemas]: z.infer<(typeof iptvSc
   updatedAt: string;
 };
 
-const SNAPSHOT = fileURLToPath(new URL('../data/iptv-snapshot.json', import.meta.url));
-
-function loadSnapshot(): IptvData {
-  if (!existsSync(SNAPSHOT)) throw new Error('Kein iptv-Snapshot vorhanden');
-  const raw = JSON.parse(readFileSync(SNAPSHOT, 'utf8')) as Record<string, unknown>;
+async function loadSnapshot(): Promise<IptvData> {
+  // Statischer Import-Pfad, damit der Abzug auch im gebündelten Vercel-Build enthalten ist
+  const raw = (await import('../data/iptv-snapshot.json', { with: { type: 'json' } })).default as Record<string, unknown>;
   const out: Record<string, unknown> = { origin: 'snapshot', updatedAt: String(raw.generatedAt ?? '') };
   for (const [k, schema] of Object.entries(iptvSchemas)) out[k] = schema.parse(raw[k] ?? []);
   return out as IptvData;
@@ -74,7 +70,7 @@ export async function loadIptv(): Promise<IptvData> {
       return { ...Object.fromEntries(entries), origin: 'live', updatedAt: new Date().toISOString() } as IptvData;
     } catch (err) {
       markError('iptv', `API nicht erreichbar, verwende Snapshot (${err instanceof Error ? err.message : String(err)})`);
-      return loadSnapshot();
+      return await loadSnapshot();
     }
   });
 }

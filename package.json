@@ -13,7 +13,8 @@
     "start": "node --env-file-if-exists=.env --import tsx server/index.ts",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "snapshot:iptv": "tsx scripts/build-iptv-snapshot.ts"
+    "snapshot:iptv": "tsx scripts/build-iptv-snapshot.ts",
+    "build:vercel": "npm run build && tsx scripts/build-vercel.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.4",
@@ -30,6 +31,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "esbuild": "^0.28.2",
     "typescript": "^5.9.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"

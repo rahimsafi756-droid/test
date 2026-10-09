@@ -16,5 +16,5 @@
     "outDir": "./node_modules/.tmp/server",
     "types": ["node"]
   },
-  "include": ["server", "shared", "scripts", "tests", "vite.config.ts", "vitest.config.ts"]
+  "include": ["server", "server/**/*.json", "shared", "scripts", "tests", "vite.config.ts", "vitest.config.ts"]
 }
