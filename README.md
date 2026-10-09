@@ -224,6 +224,19 @@ Was die einzelnen Teile leisten:
 
 Die App ist ein einzelner Node.js-Server (API + Webseite). Geeignet sind alle Anbieter, die Node.js 22 oder Docker ausführen. Freikontingente ändern sich oft. Die Angaben unten entsprechen dem letzten bekannten Stand und konnten hier nicht live überprüft werden, bitte vor der Wahl auf der Preisseite nachlesen.
 
+### Variante V: Vercel (empfohlen, kostenlos für private Projekte)
+
+1. Auf [vercel.com/signup](https://vercel.com/signup) mit **„Continue with GitHub“** anmelden. Plan **„Hobby“** wählen, er ist kostenlos und für nicht-kommerzielle Nutzung gedacht.
+2. **„Add New…“ → „Project“** klicken, beim Repository `test` auf **„Import“** klicken. Falls es fehlt, über „Adjust GitHub App Permissions“ freigeben.
+3. Die Einstellungen kommen aus `vercel.json`, also nichts ändern. Optional unter **„Environment Variables“** eintragen: `TMDB_READ_ACCESS_TOKEN`, `YOUTUBE_API_KEY`, `CONTACT`.
+4. **„Deploy“** klicken. Nach 1–2 Minuten erscheint der Link `https://<projektname>.vercel.app`.
+
+Technik und Verhalten:
+- `npm run build:vercel` erzeugt das Frontend als statische Dateien und die API als eine Serverless-Funktion (Build Output API).
+- Jeder neue Push auf GitHub wird automatisch neu veröffentlicht.
+- Den Cache baut jede neu gestartete Funktion selbst wieder auf. Der erste Aufruf nach einer Pause kann darum einige Sekunden länger dauern.
+- Schlüssel, die du später einträgst oder änderst, wirken erst nach einem neuen Deployment (Deployments → „Redeploy“).
+
 ### Variante A: Render (einfach, kostenloser Plan)
 
 1. Projekt auf GitHub hochladen (die Datei `.env` wird nicht mit hochgeladen).
